@@ -1,0 +1,132 @@
+和小深一起学前端
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>小深陪你学前端</title>
+  <style>
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      color: #00d2ff;
+      font-size: 2.5rem;
+    }
+    input {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      width: 280px;
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      background: #00d2ff;
+      color: #1a1a2e;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #00b8e6;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 16px 24px;
+      background: #16213e;
+      border-radius: 10px;
+      min-height: 24px;
+      max-width: 320px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1> 小深说</h1>
+  <button id="btnVoices"> 查音色</button>
+  <select id="voiceSelect" style="display:none; padding:8px; border-radius:8px; margin:10px 0; width:300px; font-size:1rem;">
+    <option>-- 选一个音色 --</option>
+  </select>
+  <input type="text" id="msg" placeholder="输入一句话...">
+  <button onclick="speak()"> 念给我听</button>
+  <div id="result"></div>
+  <script>
+    const API = 'https://192.168.97.207';
+    const KEY = 'Bearer sk-8ed230d26b8b9b3b3a6cba226b28ac8cfd0bce44e195e7f5';
+    // ===== 查询音色 =====
+    document.getElementById('btnVoices').addEventListener('click', async () => {
+      const result = document.getElementById('result');
+      const select = document.getElementById('voiceSelect');
+      result.textContent = '⏳ 查询音色中...';
+      try {
+        const res = await fetch(API + '/v1/audio/voices', {
+          headers: { 'Authorization': KEY }
+        });
+        const data = await res.json();
+        // data 可能是 { voices: [...] } 或直接是数组，看返回值调整
+        const voices = data.voices || data.data || data;
+        select.innerHTML = '<option>-- 选一个音色 --</option>';
+        voices.forEach(v => {
+          const name = v.name || v.id || v.voice_id || JSON.stringify(v);
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+        select.style.display = 'inline-block';
+        result.textContent = `✅ 找到 ${voices.length} 个音色`;
+      } catch (err) {
+        result.textContent = '❌ ' + err.message;
+      }
+    });
+    // ===== 语音合成 =====
+    async function speak() {
+      const text = document.getElementById('msg').value;
+      const voice = document.getElementById('voiceSelect').value;
+      const result = document.getElementById('result');
+      if (!text.trim()) {
+        result.textContent = ' 先写点什么吧～';
+        return;
+      }
+      result.textContent = '⏳ 生成中...';
+      try {
+        const body = {
+          model: 'moss-tts',
+          input: text,
+          delivery_method: 'audio',
+          response_format: 'mp3'
+        };
+        if (voice && voice !== '-- 选一个音色 --') body.voice = voice;
+        const res = await fetch(API + '/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': KEY
+          },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('请求失败: ' + res.status);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play();
+        result.textContent = ' ' + text;
+      } catch (err) {
+        result.textContent = '❌ ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
+
