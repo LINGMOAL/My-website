@@ -62,17 +62,14 @@
   <button onclick="speak()"> 念给我听</button>
   <div id="result"></div>
   <script>
-    const API = 'https://192.168.97.207';
-    const KEY = 'Bearer sk-8ed230d26b8b9b3b3a6cba226b28ac8cfd0bce44e195e7f5';
+  
     // ===== 查询音色 =====
     document.getElementById('btnVoices').addEventListener('click', async () => {
       const result = document.getElementById('result');
       const select = document.getElementById('voiceSelect');
       result.textContent = '⏳ 查询音色中...';
       try {
-        const res = await fetch(API + '/v1/audio/voices', {
-          headers: { 'Authorization': KEY }
-        });
+        const res = await fetch('/api/voices');
         const data = await res.json();
         // data 可能是 { voices: [...] } 或直接是数组，看返回值调整
         const voices = data.voices || data.data || data;
@@ -108,14 +105,11 @@
           response_format: 'mp3'
         };
         if (voice && voice !== '-- 选一个音色 --') body.voice = voice;
-        const res = await fetch(API + '/v1/audio/speech', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': KEY
-          },
-          body: JSON.stringify(body)
-        });
+        const res = await fetch('/api/speech', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text, voice })
+});
         if (!res.ok) throw new Error('请求失败: ' + res.status);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
